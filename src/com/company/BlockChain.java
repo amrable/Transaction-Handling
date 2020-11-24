@@ -16,16 +16,19 @@ public class BlockChain {
     /** Get the maximum height block */
     public Block getMaxHeightBlock() {
         // IMPLEMENT THIS
+        return null;
     }
 
     /** Get the UTXOPool for mining a new block on top of max height block */
     public UTXOPool getMaxHeightUTXOPool() {
         // IMPLEMENT THIS
+        return null;
     }
 
     /** Get the transaction pool to mine a new block */
     public TransactionPool getTransactionPool() {
         // IMPLEMENT THIS
+        return null;
     }
 
     /**
@@ -42,6 +45,7 @@ public class BlockChain {
      */
     public boolean addBlock(Block block) {
         // IMPLEMENT THIS
+        return false;
     }
 
     /** Add a transaction to the transaction pool */
