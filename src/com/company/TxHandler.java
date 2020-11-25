@@ -97,7 +97,6 @@ public class TxHandler {
     private UTXOPool utxoPool;
     private HashMap< Integer , Transaction > hashToTx;
     private HashMap< Transaction , Integer > txPos;
-    private HashMap< Transaction , Integer > dp;
 
     /**
      * Creates a public ledger whose current UTXOPool (collection of unspent transaction outputs) is
@@ -105,12 +104,12 @@ public class TxHandler {
      */
     public TxHandler(UTXOPool utxoPool) {
         this.utxoPool = new UTXOPool(utxoPool);
+        hashToTx = new HashMap<>();
+        txPos = new HashMap<>();
     }
 
-    void init(){
-        hashToTx = new HashMap<>();
-        dp = new HashMap<>();
-        txPos = new HashMap<>();
+    public UTXOPool getUTXOPool() {
+        return utxoPool;
     }
 
     /**
@@ -124,76 +123,39 @@ public class TxHandler {
      */
     public boolean isValidTx(Transaction tx) {
         // IMPLEMENT THIS
-        if(dp != null && dp.containsKey(tx)) {
-            if(dp.get(tx) == 1 || dp.get(tx) == 3)return false;
-            else return true;
-        }
-
-        // Pending state
-        if(dp != null) {
-            dp.put(tx, 1);
-        }
-
         double income = 0 , outcome = 0;
         int inputSize = tx.getInputs().size();
         HashSet<UTXO> toBeDeleted = new HashSet<>();
 
         for(int i = 0 ; i < inputSize; i++) {
             Transaction.Input ip = tx.getInputs().get(i);
-
             // Check in the UTXPool
             // Create UTXO instance and check in UTXPool
             UTXO ux = new UTXO(ip.prevTxHash , ip.outputIndex);
             if(!utxoPool.contains(ux)){
-                if(dp != null) {
-                    dp.put(tx, 3);
-                }
                 return false;
             }
-
             // Double spend [ use the same UTXO more than once ]
             if(toBeDeleted.contains(ux)) {
-                if(dp != null) {
-                    dp.put(tx, 3);
-                }
                 return false;
             }
-
             // Check Sig
             boolean sig = Crypto.verifySignature( utxoPool.getTxOutput(ux).address , tx.getRawDataToSign(i) , ip.signature);
             if(!sig) {
-                if(dp != null) {
-                    dp.put(tx, 3);
-                }
                 return false;
             }
-
             income += utxoPool.getTxOutput(ux).value;
             toBeDeleted.add(ux);
         }
-
         for(Transaction.Output op : tx.getOutputs()){
             outcome += op.value;
             if(op.value < 0){
-                if(dp != null) {
-                    dp.put(tx, 3);
-                }
                 return false;
             }
         }
-
         if(outcome > income){
-            if(dp != null) {
-                dp.put(tx, 3);
-            }
             return false;
         }
-
-        // Valid transaction
-        if(dp != null) {
-            dp.put(tx, 2);
-        }
-
         return true;
     }
 
@@ -203,16 +165,10 @@ public class TxHandler {
      * updating the current UTXO pool as appropriate.
      */
 
-    /*
-     * dp values :
-     *    1   => pending
-     *    2   => true
-     *    3   => false
-     * null   => not visited
-     * */
     public Transaction[] handleTxs(Transaction[] possibleTxs) {
         // IMPLEMENT THIS
-        init();
+        hashToTx = new HashMap<>();
+        txPos = new HashMap<>();
         Graph g = new Graph((possibleTxs.length));
         int i = 0;
         for(Transaction T : possibleTxs) {
